@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Dom Module</title>
+    <style>
+        .item {
+            background-color: #FDFDFD;
+            display: inline-block;
+            text-align: center;
+            color: darkblue;
+            width: 100px;
+            height: 100px;
+            margin: 5px;
+        }
+        
+        .price {
+            background-color: beige;
+            display: inline-block;
+            text-align: center;
+            width: 80px;
+            height: 50px;
+            margin-top:20px;
+        }
+        .selectBox {
+            margin: 5px;
+        }
+    </style>
+</head>
+<body>
+
+<div>
+    <div class="selectBox">
+        <button onclick="showBoxSize()">물건 개수</button>
+        <span id="boxSize"></span>
+    </div>
+    <div class="selectBox">
+        <button onclick="showTrashSize()">쓰레기 개수</button>
+        <span id="trashSize"></span>
+    </div>
+    <div class="selectBox">
+        <button onclick="showTrashPrice()">버린 가격</button>
+        <input type="text" id="trashPrice"/>
+    </div>
+    <div class="selectBox">
+        <input type="text" placeholder="item id" id="addItemId">
+        <input type="text" placeholder="item name" id="addItemName">
+        <input type="text" placeholder="price" id="itemPrice"/>
+        <button onclick="addItem()">담기</button>
+    </div>
+    <div class="selectBox">
+        <input type="text" placeholder="item id" id="throwItemId">
+        <button onclick="throwItem()">버리기</button>
+    </div>
+</div>
+<div style="width:100%;height:100%;">
+    <div style="position:absolute; display:inline-block; width: 500px; height:500px; background-color:#AACC66; margin:20px;">
+        <div style="text-align: center">장바구니</div>
+        <div style="width: 500px;height:400px; display:inline-block;">
+            <div id="box" >
+            </div>
+            <div style="position: absolute; bottom: 0; right: 0;">
+                <span style="background-color: burlywood";>총 가격</span>
+                <input type="text" id="boxPrice"/>
+            </div>
+        </div>
+    </div>
+    <div style="position:absolute; left: 700px; display:inline-block; width: 500px; height:500px; background-color:#A4C4FA; margin:20px;">
+        <div style="text-align: center">쓰레기통</div>
+        <div id="trash" style="width: 500px;height:400px; display:inline-block;">
+        </div>
+    </div>
+</div>
+<script>
+    var ThrowModule = (function () {
+
+        var box = document.getElementById('box');
+        var trash = document.getElementById('trash');
+
+        var init = function (boxId, trashId) {
+            box = document.getElementById(boxId);
+            trash = document.getElementById(trashId);
+        }
+
+        var addBox = function (id, name, price, callback) {
+            var itemElement = document.createElement('span');
+            itemElement.classList.add('item');
+            itemElement.innerText = name;
+            itemElement.id = id;
+            itemElement.setAttribute('price', price);
+            if ((typeof callback) === 'function') {
+                itemElement.addEventListener('click', callback);
+            }
+
+            var priceElement = document.createElement('span');
+            priceElement.classList.add('price');
+            priceElement.innerText = price;
+
+            itemElement.appendChild(priceElement);
+            box.appendChild(itemElement);
+        };
+
+        var removeItem = function (id) {
+            var element = document.getElementById(id);
+            element.parentNode.removeChild(element);
+        };
+
+        var existBox = function (id) {
+            var element = getElement(id);
+            if (element === undefined || element === null || element.parentNode.id !== 'box') {
+                return false;
+            }
+            return true;
+        }
+
+        var throwItem = function (id) {
+            var element = getElement(id);
+            box.removeChild(element);
+            trash.appendChild(element);
+        };
+
+        var returnItem = function (id) {
+            var element = getElement(id);
+            trash.removeChild(element);
+            box.appendChild(element);
+            element.addEventListener('click', null);
+        }
+
+        var getBoxSize = function () {
+            return box.childElementCount;
+        }
+
+        var getTrashSize = function () {
+            return trash.childElementCount;
+        }
+
+        var getBoxSumPrice = function () {
+            var sum = 0;
+            for (var i = 0; i < box.children.length; i++) {
+                sum += parseInt(box.children[i].getAttribute("price"));
+            }
+            return sum;
+        };
+
+        var getTrashSumPrice = function () {
+            var sum = 0;
+            for (var i = 0; i < trash.children.length; i++) {
+                sum += parseInt(trash.children[i].getAttribute("price"));
+            }
+            return sum;
+        };
+
+        var getElement = function (id) {
+            return document.getElementById(id);
+        }
+
+        var getArticles = function () {
+            $.ajax({
+                method : 'get',
+                url : 'www.naver.com/porfolio',
+                success : function (data) {
+                    var portfolio = JSON.parse(data.result.portfolios); // []
+
+                    for (var i = 0 ; i < portfolio.length ; i++ ) {
+                        var div = document.createElement('div');
+                        var text = document.createElement('div');
+                        div.innerHTML = portfolio[i].title;
+                        text.innerText =  portfolio[i].text;
+                    }
+
+                },
+                type : 'json'
+            })
+        }
+
+        var insertArticle = function () {
+            $.ajax({
+                method : 'post',
+                url : 'www.naver.com/article'
+                data : {
+                    title : document.getElementById('customerName').value,
+                    writer : 'aeran',
+                    text : 'hello'
+                },
+                success: function (data) {
+                    if (data.result == 'success') {
+                        alert('성공적으로 등록되었습니다.');
+                    } else if (data.result == 'fail') {
+                        alert('등록에 실패하였습니다.')
+                    }
+
+                }
+            })
+        };
+
+        insertArticle();
+
+        return {
+            // key : value
+            init : init,
+            add : addBox,
+            removeItem : removeItem,
+            getBoxSize : getBoxSize,
+            getTrashSize : getTrashSize,
+            existBox : existBox,
+            throwItem : throwItem,
+            returnItem : returnItem,
+            getBoxSumPrice : getBoxSumPrice,
+            getTrashSumPrice : getTrashSumPrice
+        }
+
+    })();
+
+    /*
+     ThrowModule.init('box', 'trash');
+     ThrowModule.addBox('apple','사과');
+     ThrowModule.removeItem('apple');
+     ThrowModule.addBox('phone','전화기');
+     ThrowModule.throwItem('phone');
+     ThrowModule.getTrashSize();
+     ThrowModule.throwItem('pencil');
+     ThrowModule.getTrashSize();
+     ThrowModule.getBoxSize();
+    */
+</script>
+<script>
+
+    // 모듈 초기화
+    ThrowModule.init('box', 'trash');
+
+    function showBoxSize() {
+        var boxSizeElement = document.getElementById('boxSize');
+        boxSizeElement.innerText = ThrowModule.getBoxSize();
+    }
+
+    function showTrashSize() {
+        var trashSizeElement = document.getElementById('trashSize');
+        trashSizeElement.innerText = ThrowModule.getTrashSize();
+    }
+
+    function showTrashPrice() {
+        var trashPriceElement = document.getElementById('trashPrice');
+        trashPriceElement.value = ThrowModule.getTrashSumPrice();
+    }
+
+    function throwItem() {
+        var itemId = document.getElementById('throwItemId').value;
+
+        if (!ThrowModule.existBox(itemId)) {
+            alert('존재하지 않는 아이템입니다.');
+        }
+
+        ThrowModule.throwItem(itemId);
+        refreshBoxPrice();
+    }
+
+    function addItem() {
+        var itemId = document.getElementById('addItemId').value;
+        var itemName = document.getElementById('addItemName').value;
+        var itemPrice = document.getElementById('itemPrice').value;
+
+        if (ThrowModule.existBox(itemId)) {
+            alert('중복된 아이디는 지정할 수 없습니다.');
+            return;
+        }
+
+        if (itemId.length <= 0 || itemName.length <= 0) {
+            alert('아이디와 이름은 반드시 입력해야 합니다.');
+            return;
+        }
+
+        if (isNaN(itemPrice)) {
+            alert('가격은 숫자만 입력할 수 있습니다.');
+            return;
+        }
+
+        ThrowModule.add(itemId, itemName, itemPrice, function () {
+            alert('상품 아이디 : ' + itemId + ' \n상품 이름 : ' + itemName + ' \n상품 가격 : ' + itemPrice);
+        });
+        refreshBoxPrice();
+    }
+
+    function refreshBoxPrice() {
+        var sumPriceElement = document.getElementById('boxPrice');
+        sumPriceElement.value = ThrowModule.getBoxSumPrice();
+    }
+
+</script>
+<script>
+    // Debuing Test
+</script>
+</body>
+</html>
