@@ -1,4 +1,4 @@
-package jun.was.server;
+package jun.was.chapter1.server;
 
 import java.io.*;
 

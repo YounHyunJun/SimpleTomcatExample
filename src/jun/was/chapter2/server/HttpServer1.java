@@ -1,31 +1,26 @@
-package jun.was.server;
+package jun.was.chapter2.server;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.net.UnknownHostException;
 
-public class HttpServer {
+import static jun.was.chapter2.server.Constants.SHUTDOWN_COMMAND;
 
-    public static final String WEB_ROOT = System.getProperty("user.dir") + File.separator + "webroot";
-
-    private static final String SHUTDOWN_COMMAND = "/SHUTDOWN";
+public class HttpServer1 {
 
     private boolean shutdown = false;
 
     public static void main(String[] args) {
-        System.out.println("Web Root Directory: " + WEB_ROOT);
-        HttpServer server = new HttpServer();
+        HttpServer1 server = new HttpServer1();
         server.await();
     }
 
     public void await() {
         ServerSocket serverSocket = null;
-        int port = 8080;
+        int port =  8080;
 
         try {
             serverSocket = new ServerSocket(port, 1, InetAddress.getByName("127.0.0.1"));
@@ -43,20 +38,26 @@ public class HttpServer {
                 socket = serverSocket.accept();
                 input = socket.getInputStream();
                 output = socket.getOutputStream();
-                // Request 생성
+
                 Request request = new Request(input);
                 request.parse();
-                // Response 생성
+
                 Response response = new Response(output);
-                response.setRequest(request);
-                response.sendStaticResource();
-                // 소켓 종료
+
+                if (request.getUri().startsWith("/servlet/")) {
+                    ServletProcessor1 processor = new ServletProcessor1();
+                    processor.process(request, response);
+                } else {
+                    StaticResourceProcessor processor = new StaticResourceProcessor();
+                    processor.process(request, response);
+                }
+
                 socket.close();
-                // 서버 종료 체크
                 shutdown = request.getUri().equals(SHUTDOWN_COMMAND);
-            } catch (IOException e) {
+
+            } catch (Exception e) {
                 e.printStackTrace();
-                continue;
+                System.exit(1);
             }
         }
 
